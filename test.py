@@ -19,7 +19,7 @@ env = Environment(loader=PackageLoader('flask-test', 'templates'))
 @app.route("/", methods = ['GET', 'POST'])
 def main():
     if request.method == 'GET':
-        template = env.get_template('click.html')
+        template = env.get_template('test.html')
         return template.render(val = "nothing")
     else:
         switch_name = None
@@ -36,7 +36,7 @@ def main():
             else:
                 GPIO.output("P8_46", GPIO.LOW)
                 GPIO.output("P8_45", GPIO.LOW)
-        template = env.get_template('click.html')
+        template = env.get_template('test.html')
         return template.render(val=switch_name)
         time.sleep(5)
 
