@@ -5,41 +5,67 @@ https://stackoverflow.com/questions/36695902/beaglebone-black-to-the-gpio-contro
 import Adafruit_BBIO.GPIO as GPIO
 import time
 
-GPIO.setup("P8_45", GPIO.OUT)
-GPIO.setup("P8_46", GPIO.OUT)
+import RPi.GPIO as GPIO
+from flask import Flask, render_template, request
+app = Flask(__name__)
 
-from flask import Flask
-from flask import render_template
-from flask import request
-from jinja2 import Environment, PackageLoader
+GPIO.setmode(GPIO.BCM)
 
-app =Flask(__name__)
-env = Environment(loader=PackageLoader('flask-test', 'templates'))
+# Create a dictionary called pins to store the pin number, name, and pin state:
+pins = {
+   24 : {'name' : 'coffee maker', 'state' : GPIO.LOW},
+   25 : {'name' : 'lamp', 'state' : GPIO.LOW}
+   }
 
-@app.route("/", methods = ['GET', 'POST'])
+# Set each pin as an output and make it low:
+for pin in pins:
+   GPIO.setup(pin, GPIO.OUT)
+   GPIO.output(pin, GPIO.LOW)
+
+@app.route("/")
 def main():
-    if request.method == 'GET':
-        template = env.get_template('test.html')
-        return template.render(val = "nothing")
-    else:
-        switch_name = None
-        for led_name in request.form.keys():
-            led_status = request.form.get(led_name, None)
-            if led_name == "led1" and led_status == "On":
-                GPIO.output("P8_45", GPIO.HIGH)
-                GPIO.output("P8_46", GPIO.LOW)
-                switch_name = "SWITCH 1"
-            elif led_name == "led2" and led_status == "On":
-                GPIO.output("P8_45", GPIO.LOW)
-                GPIO.output("P8_46", GPIO.HIGH)
-                switch_name = "SWITCH 2"
-            else:
-                GPIO.output("P8_46", GPIO.LOW)
-                GPIO.output("P8_45", GPIO.LOW)
-        template = env.get_template('test.html')
-        return template.render(val=switch_name)
-        time.sleep(5)
+   # For each pin, read the pin state and store it in the pins dictionary:
+   for pin in pins:
+      pins[pin]['state'] = GPIO.input(pin)
+   # Put the pin dictionary into the template data dictionary:
+   templateData = {
+      'pins' : pins
+      }
+   # Pass the template data into the template main.html and return it to the user
+   return render_template('main.html', **templateData)
 
-app.debug = True
+# The function below is executed when someone requests a URL with the pin number and action in it:
+@app.route("/<changePin>/<action>")
+def action(changePin, action):
+   # Convert the pin from the URL into an integer:
+   changePin = int(changePin)
+   # Get the device name for the pin being changed:
+   deviceName = pins[changePin]['name']
+   # If the action part of the URL is "on," execute the code indented below:
+   if action == "on":
+      # Set the pin high:
+      GPIO.output(changePin, GPIO.HIGH)
+      # Save the status message to be passed into the template:
+      message = "Turned " + deviceName + " on."
+   if action == "off":
+      GPIO.output(changePin, GPIO.LOW)
+      message = "Turned " + deviceName + " off."
+   if action == "toggle":
+      # Read the pin and set it to whatever it isn't (that is, toggle it):
+      GPIO.output(changePin, not GPIO.input(changePin))
+      message = "Toggled " + deviceName + "."
+
+   # For each pin, read the pin state and store it in the pins dictionary:
+   for pin in pins:
+      pins[pin]['state'] = GPIO.input(pin)
+
+   # Along with the pin dictionary, put the message into the template data dictionary:
+   templateData = {
+      'message' : message,
+      'pins' : pins
+   }
+
+   return render_template('main.html', **templateData)
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0",port=5000)
+   app.run(host='0.0.0.0', port=80, debug=True)
