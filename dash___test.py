@@ -105,40 +105,32 @@ app.layout = html.Div(flat_list([
 
 for i in range(n_sliders):
     @app.callback(Output('pwm-label-{}'.format(i), 'children'),
-                  [Input('pwm-slider-{}'.format(i), 'value'),
-                   Input('--btn-{}'.format(i), 'n_clicks'),
-                   Input('+-btn-{}'.format(i), 'n_clicks')
-                   ])
-    def slider_callback(val, minus, plus, idx=i):
-        global timestamp
+                  [Input('pwm-slider-{}'.format(i), 'value')])
+    def slider_callback(val, idx=i):
         global pwm_values
-        global minus_clicks
-        global plus_clicks
-        val_actual = pwm_values[str(idx)][-1]
-        if minus > minus_clicks[str(idx)]:
-            minus_clicks[str(idx)] += 1
-            if val_actual - 1 >= 0:
-                val = val_actual - 1
-            else:
-                val = val_actual
-        if plus > plus_clicks[str(idx)]:
-            plus_clicks[str(idx)] += 1
-            if val_actual + 1 <= 100:
-                val = val_actual + 1
-            else:
-                val = val_actual
-
-        pwm_values[str(idx)].append(val)
-        timestamp[str(idx)].append(time.time()-timestamp['start'])
+        if pwm_values[str(idx)][-1] != val:
+            global timestamp
+            pwm_values[str(idx)].append(val)
+            timestamp[str(idx)].append(time.time()-timestamp['start'])
         return str(val)
 
     @app.callback(Output('pwm-slider-{}'.format(i), 'value'),
-                  events=[Event('graph-update', 'interval')])
-    def slider_update(idx=i):
+                  [Input('--btn-{}'.format(i), 'n_clicks'),
+                   Input('+-btn-{}'.format(i), 'n_clicks')])
+    def slider_update(minus, plus, idx=i):
         global pwm_values
-        return pwm_values[str(idx)][-1]
-
-
+        global minus_clicks
+        global plus_clicks
+        val = pwm_values[str(idx)][-1]
+        if minus > minus_clicks[str(idx)]:
+            minus_clicks[str(idx)] += 1
+            if val - 1 >= 0:
+                val -= 1
+        if plus > plus_clicks[str(idx)]:
+            plus_clicks[str(idx)] += 1
+            if val + 1 <= 100:
+                val += 1
+        return val
 
 
 for i in range(n_btns):
@@ -146,7 +138,10 @@ for i in range(n_btns):
                   [Input('d-btn-{}'.format(i), 'n_clicks')])
     def d_btn_callback(event, idx=i):
         global d_values
-        state = event % 2
+        if event:
+            state = event % 2
+        else:
+            state = 0
         d_values[str(idx)] = state
         return state
 
