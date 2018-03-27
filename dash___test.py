@@ -16,11 +16,19 @@ import time
 def flat_list(l):
     return [item for sublist in l for item in sublist]
 
+
 n_sliders = 6
+n_btns = 4
 max_len = 10
 
 pwm_values = {
     str(i): deque([0]*max_len, maxlen=max_len) for i in range(n_sliders)}
+d_values = {
+    str(i): 0 for i in range(n_btns)}
+minus_clicks = {
+    str(i): 0 for i in range(n_sliders)}
+plus_clicks = {
+    str(i): 0 for i in range(n_sliders)}
 timestamp = {
     str(i): deque(range(max_len), maxlen=max_len) for i in range(n_sliders)}
 timestamp['start'] = time.time()
@@ -28,32 +36,124 @@ timestamp['start'] = time.time()
 app = dash.Dash()
 
 
-sliders = flat_list([[html.Label('0', id='pwm-label-{}'.format(i)),
-                      dcc.Slider(
-                            id='pwm-slider-{}'.format(i),
-                            min=0,
-                            max=100,
-                            value=0,
-                            marks={str(j): str(j) for j in range(0, 101, 10)})
-                      ] for i in range(n_sliders)])
+app.css.append_css({
+    "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
+})
+
+
+#    html.I(id='submit-button', n_clicks=0, className='fa fa-send'),
+
+
+lbls = [[html.Label('0', id='pwm-label-{}'.format(i))
+         ] for i in range(n_sliders)]
+
+btns = [[
+        html.Button(id='--btn-{}'.format(i), children='-'),
+        html.Button(id='+-btn-{}'.format(i), children='+')
+        ] for i in range(n_sliders)]
+
+sldrs = [[
+        dcc.Slider(id='pwm-slider-{}'.format(i),
+                   min=0,
+                   max=100,
+                   value=0,
+                   marks={str(j): str(j) for j in range(0, 101, 10)}
+                   )
+        ] for i in range(n_sliders)]
+
+
+sliders = flat_list(
+            [[html.Div([
+                html.Div(lbls[i], className="one column"),
+                html.Div(btns[i], className="three columns"),
+                html.Div(sldrs[i], className="eight columns"),
+                ], className="row")
+              ] for i in range(n_sliders)])
+
+
+dlbls = [[html.Button(children='F{}'.format(i), id='d-btn-{}'.format(i))
+          ] for i in range(n_btns)]
+
+dsldrs = [[dcc.Slider(id='d-slider-{}'.format(i),
+                      min=0,
+                      max=1,
+                      value=0,
+                      marks={j: str(bool(j)) for j in range(2)}
+                      )
+           ] for i in range(n_btns)]
+
+dsliders = flat_list(
+            [[html.Div([
+                html.Div(dlbls[i], className="six columns"),
+                html.Div(dsldrs[i], className="six columns"),
+                ], className="row")
+              ] for i in range(n_btns)])
+
+
+userctr = [html.Div([
+            html.Div(sliders, className='eight columns'),
+            html.Div(dsliders, className='three columns')
+        ], className='row')]
 
 
 app.layout = html.Div(flat_list([
     [dcc.Graph(id='live-graph', animate=True),
      dcc.Interval(id='graph-update', interval=1000)],
-    sliders
+    userctr
 ]))
 
 
 for i in range(n_sliders):
     @app.callback(Output('pwm-label-{}'.format(i), 'children'),
-                  [Input('pwm-slider-{}'.format(i), 'value')])
-    def slider_callback(val, idx=i):
+                  [Input('pwm-slider-{}'.format(i), 'value'),
+                   Input('--btn-{}'.format(i), 'n_clicks'),
+                   Input('+-btn-{}'.format(i), 'n_clicks')
+                   ])
+    def slider_callback(val, minus, plus, idx=i):
         global timestamp
         global pwm_values
+        global minus_clicks
+        global plus_clicks
+        val_actual = pwm_values[str(idx)][-1]
+        if minus > minus_clicks[str(idx)]:
+            minus_clicks[str(idx)] += 1
+            if val_actual - 1 >= 0:
+                val = val_actual - 1
+            else:
+                val = val_actual
+        if plus > plus_clicks[str(idx)]:
+            plus_clicks[str(idx)] += 1
+            if val_actual + 1 <= 100:
+                val = val_actual + 1
+            else:
+                val = val_actual
+
         pwm_values[str(idx)].append(val)
         timestamp[str(idx)].append(time.time()-timestamp['start'])
-        return val
+        return str(val)
+
+    @app.callback(Output('pwm-slider-{}'.format(i), 'value'),
+                  events=[Event('graph-update', 'interval')])
+    def slider_update(idx=i):
+        global pwm_values
+        return pwm_values[str(idx)][-1]
+
+
+
+
+for i in range(n_btns):
+    @app.callback(Output('d-slider-{}'.format(i), 'value'),
+                  [Input('d-btn-{}'.format(i), 'n_clicks')])
+    def d_btn_callback(event, idx=i):
+        global d_values
+        state = event % 2
+        d_values[str(idx)] = state
+        return state
+
+
+
+
+
 
 
 @app.callback(Output('live-graph', 'figure'),
