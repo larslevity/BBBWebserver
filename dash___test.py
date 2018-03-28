@@ -17,21 +17,38 @@ def flat_list(l):
     return [item for sublist in l for item in sublist]
 
 
+# -----------------------------------------------------------------------------
+# Initialize
+# -----------------------------------------------------------------------------
+
+
 n_sliders = 6
 n_btns = 4
 max_len = 10
 
 pwm_values = {
     str(i): deque([0]*max_len, maxlen=max_len) for i in range(n_sliders)}
+
+ref_values = {
+    str(i): deque([0]*max_len, maxlen=max_len) for i in range(n_sliders)}
+
+mes_values = {
+    str(i): deque([0]*max_len, maxlen=max_len) for i in range(n_sliders)}
+
+
 d_values = {
     str(i): 0 for i in range(n_btns)}
+
 minus_clicks = {
     str(i): 0 for i in range(n_sliders)}
+
 plus_clicks = {
     str(i): 0 for i in range(n_sliders)}
+
 timestamp = {
     str(i): deque(range(max_len), maxlen=max_len) for i in range(n_sliders)}
 timestamp['start'] = time.time()
+
 
 app = dash.Dash()
 
@@ -43,6 +60,10 @@ app.css.append_css({
 
 #    html.I(id='submit-button', n_clicks=0, className='fa fa-send'),
 
+
+# -----------------------------------------------------------------------------
+# PWM CONTROL - Html layout
+# -----------------------------------------------------------------------------
 
 lbls = [[html.Label('0', id='pwm-label-{}'.format(i))
          ] for i in range(n_sliders)]
@@ -65,8 +86,8 @@ sldrs = [[
 sliders = flat_list(
             [[html.Div([
                 html.Div(lbls[i], className="one column"),
-                html.Div(btns[i], className="three columns"),
-                html.Div(sldrs[i], className="eight columns"),
+                html.Div(btns[i], className="four columns"),
+                html.Div(sldrs[i], className="seven columns"),
                 ], className="row")
               ] for i in range(n_sliders)])
 
@@ -85,22 +106,168 @@ dsldrs = [[dcc.Slider(id='d-slider-{}'.format(i),
 dsliders = flat_list(
             [[html.Div([
                 html.Div(dlbls[i], className="six columns"),
-                html.Div(dsldrs[i], className="six columns"),
+                html.Div(dsldrs[i], className="six columns")
                 ], className="row")
               ] for i in range(n_btns)])
 
 
-userctr = [html.Div([
+pwmctr = [html.Div([
             html.Div(sliders, className='eight columns'),
             html.Div(dsliders, className='three columns')
         ], className='row')]
 
+# -----------------------------------------------------------------------------
+# Pattern CONTROL - Html tab Layout
+# -----------------------------------------------------------------------------
+
+PATT3_0 = [[0.0, 0.99, 0.97, 0.0, 0.25, 0.71, False, True, True, False, 5.0],
+           [0.0, 0.99, 0.97, 0.0, 0.25, 0.71, True, True, True, True, 2.0],
+           [0.0, 0.99, 0.97, 0.0, 0.25, 0.71, True, False, False, True, 1.0],
+           [0.77, 0.0, 0.0, 0.93, 0.70, 0.25, True, False, False, True, 5.0],
+           [0.77, 0.0, 0.0, 0.93, 0.70, 0.25, True, True, True, True, 2.0],
+           [0.77, 0.0, 0.0, 0.93, 0.70, 0.25, False, True, True, False, 1.0]]
+
+PATT2_6 = [[0.0, 0.95, 0.91, 0.0, 0.25, 0.71, False, True, True, False, 5.0],
+           [0.0, 0.95, 0.91, 0.0, 0.25, 0.71, True, True, True, True, 2.0],
+           [0.0, 0.95, 0.91, 0.0, 0.25, 0.71, True, False, False, True, 1.0],
+           [0.7, 0.0, 0.0, 0.92, 0.76, 0.25, True, False, False, True, 5.0],
+           [0.7, 0.0, 0.0, 0.92, 0.76, 0.25, True, True, True, True, 2.0],
+           [0.7, 0.0, 0.0, 0.92, 0.76, 0.25, False, True, True, False, 1.0]]
+
+
+def generate_pattern(t_move, t_fix, t_defix, p0, p1, p2, p3, p4, p41, p5, p51):
+    pattern = [[0.0, p1, p2, 0.0, p41, p5, False, True, True, False, t_move],
+               [0.0, p1, p2, 0.0, p41, p5, True, True, True, True, t_fix],
+               [0.0, p1, p2, 0.0, p41, p5, True, False, False, True, t_defix],
+               [p0, 0.0, 0.0, p3, p4, p51, True, False, False, True, t_move],
+               [p0, 0.0, 0.0, p3, p4, p51, True, True, True, True, t_fix],
+               [p0, 0.0, 0.0, p3, p4, p51, False, True, True, False, t_defix]]
+    return pattern
+
+
+pttrnctr_dic = {'v3.0': {'data': PATT3_0,
+                         'ptrn-t-move': PATT3_0[0][-1],
+                         'ptrn-t-fix': PATT3_0[1][-1],
+                         'ptrn-t-defix': PATT3_0[2][-1],
+                         'ptrn-p-0': PATT3_0[3][0],
+                         'ptrn-p-1': PATT3_0[0][1],
+                         'ptrn-p-2': PATT3_0[0][2],
+                         'ptrn-p-3': PATT3_0[3][3],
+                         'ptrn-p-4': PATT3_0[3][4],
+                         'ptrn-p-41': PATT3_0[0][4],
+                         'ptrn-p-5': PATT3_0[0][5],
+                         'ptrn-p-51': PATT3_0[3][5]},
+                'v2.6': {'data': PATT2_6,
+                         't_move': PATT2_6[0][-1],
+                         't_fix': PATT2_6[1][-1],
+                         't_defix': PATT2_6[2][-1],
+                         'p_0': PATT2_6[3][0],
+                         'p_1': PATT2_6[0][1],
+                         'p_2': PATT2_6[0][2],
+                         'p_3': PATT2_6[3][3],
+                         'p_4': PATT2_6[3][4],
+                         'p_41': PATT2_6[0][4],
+                         'p_5': PATT2_6[0][5],
+                         'p_51': PATT2_6[3][5]}
+                }
+
+pttrnctr = html.Div([
+    html.Div([
+        html.Div([
+            dcc.Graph(id='ptrn-graph')
+            ], className='row')
+        ], className='eight columns'),
+    html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.Div(['p0: \t\t', dcc.Input(id='ptrn-p-0',
+                                                    type='text',
+                                                    style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['p1: \t\t', dcc.Input(id='ptrn-p-1',
+                                                    type='text',
+                                                    style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['p2: \t\t', dcc.Input(id='ptrn-p-2',
+                                                    type='text',
+                                                    style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['p3: \t\t', dcc.Input(id='ptrn-p-3',
+                                                    type='text',
+                                                    style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['p4: \t\t', dcc.Input(id='ptrn-p-4',
+                                                    type='text',
+                                                    style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['p5: \t\t', dcc.Input(id='ptrn-p-5',
+                                                    type='text',
+                                                    style={'width': 60})])
+                    ], className='row')
+            ], className='six columns'),
+            html.Div([
+                html.Div([
+                    html.Div(['p41: \t\t', dcc.Input(id='ptrn-p-41',
+                                                     type='text',
+                                                     style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['p51: \t\t', dcc.Input(id='ptrn-p-51',
+                                                     type='text',
+                                                     style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['t_m: \t\t', dcc.Input(id='ptrn-t-move',
+                                                     type='text',
+                                                     style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['t_a: \t\t', dcc.Input(id='ptrn-t-fix',
+                                                     type='text',
+                                                     style={'width': 60})])
+                    ], className='row'),
+                html.Div([
+                    html.Div(['t_d: \t\t', dcc.Input(id='ptrn-t-defix',
+                                                     type='text',
+                                                     style={'width': 60})])
+                    ], className='row')
+            ], className='six columns'),
+        ], className='row')
+    ], className='four columns')
+], className='row')
+
+
+# -----------------------------------------------------------------------------
+# Pressure CONTROL - Html Tab Layout
+# -----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
+# Overall - Html Layout
+# -----------------------------------------------------------------------------
 
 app.layout = html.Div(flat_list([
-    [dcc.Graph(id='live-graph', animate=True),
+    [html.Div([
+        html.Div(dcc.Graph(id='pressure-ref-graph', animate=True),
+                 className="six columns"),
+        html.Div(dcc.Graph(id='live-graph', animate=True),
+                 className="six columns")
+        ], className='row'),
      dcc.Interval(id='graph-update', interval=1000)],
-    userctr
+    pwmctr,
+    [pttrnctr]
 ]))
+
+
+# -----------------------------------------------------------------------------
+# Callbacks
+# -----------------------------------------------------------------------------
 
 
 for i in range(n_sliders):
