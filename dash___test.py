@@ -111,10 +111,10 @@ dsliders = flat_list(
               ] for i in range(n_btns)])
 
 
-pwmctr = [html.Div([
+pwmctr = html.Div([
             html.Div(sliders, className='eight columns'),
             html.Div(dsliders, className='three columns')
-        ], className='row')]
+        ], className='row')
 
 # -----------------------------------------------------------------------------
 # Pattern CONTROL - Html tab Layout
@@ -142,43 +142,62 @@ PATTusr = [[0.00, 0.00, 0.00, 0.0, 0.25, 0.00, False, True, True, False, 5.0],
            [0.00, 0.0, 0.0, 0.00, 0.00, 0.25, False, True, True, False, 1.0]]
 
 
-def generate_pattern(t_move, t_fix, t_defix, p0, p1, p2, p3, p4, p41, p5, p51):
-    pattern = [[0.0, p1, p2, 0.0, p41, p5, False, True, True, False, t_move],
-               [0.0, p1, p2, 0.0, p41, p5, True, True, True, True, t_fix],
-               [0.0, p1, p2, 0.0, p41, p5, True, False, False, True, t_defix],
-               [p0, 0.0, 0.0, p3, p4, p51, True, False, False, True, t_move],
-               [p0, 0.0, 0.0, p3, p4, p51, True, True, True, True, t_fix],
-               [p0, 0.0, 0.0, p3, p4, p51, False, True, True, False, t_defix]]
-    return pattern
+def generate_ptrn_dict(data):
+    return {
+        'ptrn_t_move': data[0][-1],
+        'ptrn_t_fix': data[1][-1],
+        'ptrn_t_defix': data[2][-1],
+        'ptrn_p_0': data[3][0],
+        'ptrn_p_01': data[0][0],
+        'ptrn_p_1': data[0][1],
+        'ptrn_p_11': data[3][1],
+        'ptrn_p_2': data[0][2],
+        'ptrn_p_21': data[3][2],
+        'ptrn_p_3': data[3][3],
+        'ptrn_p_31': data[0][3],
+        'ptrn_p_4': data[3][4],
+        'ptrn_p_41': data[0][4],
+        'ptrn_p_5': data[0][5],
+        'ptrn_p_51': data[3][5]}
 
 
-ptrnctr_dic = {key:
-    {'data': data,
-     'ptrn-t-move': data[0][-1],
-     'ptrn-t-fix': data[1][-1],
-     'ptrn-t-defix': data[2][-1],
-     'ptrn-p-0': data[3][0],
-     'ptrn-p-1': data[0][1],
-     'ptrn-p-2': data[0][2],
-     'ptrn-p-3': data[3][3],
-     'ptrn-p-4': data[3][4],
-     'ptrn-p-41': data[0][4],
-     'ptrn-p-5': data[0][5],
-     'ptrn-p-51': data[3][5]}
-    for key, data in zip(['v3.0', 'v2.6', 'own-ptrn'],
-                         [PATT3_0, PATT2_6, PATTusr])
-}
+def generate_pattern(ptrn_t_move, ptrn_t_fix, ptrn_t_defix, ptrn_p_0,
+                     ptrn_p_01, ptrn_p_1, ptrn_p_11, ptrn_p_2, ptrn_p_21,
+                     ptrn_p_3, ptrn_p_31, ptrn_p_4, ptrn_p_41, ptrn_p_5,
+                     ptrn_p_51):
+    data = [
+        [ptrn_p_01, ptrn_p_1, ptrn_p_2, ptrn_p_31, ptrn_p_41, ptrn_p_5,
+         False, True, True, False, ptrn_t_move],
+        [ptrn_p_01, ptrn_p_1, ptrn_p_2, ptrn_p_31, ptrn_p_41, ptrn_p_5,
+         True, True, True, True, ptrn_t_fix],
+        [ptrn_p_01, ptrn_p_1, ptrn_p_2, ptrn_p_31, ptrn_p_41, ptrn_p_5,
+         True, False, False, True, ptrn_t_defix],
+        [ptrn_p_0, ptrn_p_11, ptrn_p_21, ptrn_p_3, ptrn_p_4, ptrn_p_51,
+         True, False, False, True, ptrn_t_move],
+        [ptrn_p_0, ptrn_p_11, ptrn_p_21, ptrn_p_3, ptrn_p_4, ptrn_p_51,
+         True, True, True, True, ptrn_t_fix],
+        [ptrn_p_0, ptrn_p_11, ptrn_p_21, ptrn_p_3, ptrn_p_4, ptrn_p_51,
+         False, True, True, False, ptrn_t_defix]]
+    return data
 
 
-ptrn_lbls_t = [
-    ['{}{} : '.format(key.split('-')[1], key.split('-')[2]),
-     html.Label(id='{}-lbl'.format(key), children='0')]
+ptrnctr_dic = {key: generate_ptrn_dict(data)
+               for key, data in zip(['v3.0', 'v2.6', 'own-ptrn'],
+                                    [PATT3_0, PATT2_6, PATTusr])
+               }
+
+
+ptrn_inputs_t = [
+    ['{}{} :'.format(key.split('_')[1], key.split('_')[2][:3]),
+     dcc.Input(id=key, type='number', min=0,
+               max=100 if key.split('_')[1] == 'p' else 1000,
+               value=ptrnctr_dic['own-ptrn'][key]*100, style={'width': 65})]
     for key in sorted(ptrnctr_dic[ptrnctr_dic.keys()[0]].iterkeys())
     if key != 'data']
-ptrn_lbls = [html.Div([
-        html.Div(item[0], className='six columns'),
-        html.Div(item[1], className='six columns')
-    ], className='row') for item in ptrn_lbls_t]
+ptrn_inputs = [html.Div([
+        html.Div(item[0], className='five columns'),
+        html.Div(item[1], className='seven columns')
+    ], className='row') for item in ptrn_inputs_t]
 
 
 pttrnctr = html.Div([
@@ -191,87 +210,17 @@ pttrnctr = html.Div([
               html.Button(id='ptrn-stop', children='Stop')
               ], className='row'),
     html.Div([
-        html.Div(ptrn_lbls, className='two columns'),
+        html.Div(id='ptrn-scope', className='eight columns'),
         html.Div([
             html.Div([
-                dcc.Graph(id='ptrn-graph')
-                ], className='row')
-            ], className='six columns'),
-        html.Div([
-            html.Div([
-                html.Div([
-                    html.Div([
-                        html.Div(['p0: \t\t', dcc.Input(id='ptrn-p-0',
-                                                        type='number', min=0,
-                                                        max=100,
-                                                        style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['p1: \t\t', dcc.Input(id='ptrn-p-1',
-                                                        type='number', min=0,
-                                                        max=100,
-                                                        style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['p2: \t\t', dcc.Input(id='ptrn-p-2',
-                                                        type='number', min=0,
-                                                        max=100,
-                                                        style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['p3: \t\t', dcc.Input(id='ptrn-p-3',
-                                                        type='number', min=0,
-                                                        max=100,
-                                                        style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['p4: \t\t', dcc.Input(id='ptrn-p-4',
-                                                        type='number', min=0,
-                                                        max=100,
-                                                        style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['p5: \t\t', dcc.Input(id='ptrn-p-5',
-                                                        type='number', min=0,
-                                                        max=100,
-                                                        style={'width': 80})])
-                        ], className='row')
-                ], className='six columns'),
-                html.Div([
-                    html.Div([
-                        html.Div(['p41: \t\t', dcc.Input(id='ptrn-p-41',
-                                                         type='number', min=0,
-                                                         max=100,
-                                                         style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['p51: \t\t', dcc.Input(id='ptrn-p-51',
-                                                         type='number', min=0,
-                                                         max=100,
-                                                         style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['t_m: \t\t', dcc.Input(id='ptrn-t-move',
-                                                         type='number', min=0,
-                                                         max=20,
-                                                         style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['t_a : ', dcc.Input(id='ptrn-t-fix',
-                                                      type='number',
-                                                      min=0, max=20,
-                                                      style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
-                        html.Div(['t_d : ', dcc.Input(id='ptrn-t-defix',
-                                                      type='number', min=0,
-                                                      max=20,
-                                                      style={'width': 80})])
-                        ], className='row'),
-                    html.Div([
+                html.Div(
+                    ptrn_inputs[:8], className='six columns'),
+                html.Div(flat_list([
+                    ptrn_inputs[8:],
+                    [html.Div([
                         html.Button(id='ptrn-submit-btn', children='Submit')
-                        ], className='row')
-                ], className='six columns'),
+                        ], className='row')]
+                ]), className='six columns'),
             ], className='row')
         ], className='four columns')
     ], className='row')
@@ -295,7 +244,7 @@ app.layout = html.Div(flat_list([
                  className="six columns")
         ], className='row'),
      dcc.Interval(id='graph-update', interval=1000)],
-    pwmctr,
+    [pwmctr],
     [pttrnctr]
 ]))
 
@@ -352,24 +301,71 @@ for i in range(n_btns):
 # Callbacks - Ptrn
 # -----------------------------------------------------------------------------
 
+#
+#for key in ptrnctr_dic[ptrnctr_dic.keys()[0]]:
+#    if key != 'data':
+#        @app.callback(Output('{}-lbl'.format(key), 'children'),
+#                      events=[Event('ptrn-graph', 'click')],
+#                      state=[State('ptrn-dropdown', 'value')])
+#        def update_ptrn_params(dropdown_val, key=key):
+#            return ptrnctr_dic[dropdown_val][key]
 
-for key in ptrnctr_dic[ptrnctr_dic.keys()[0]]:
-    if key == 'data':
-        continue
 
-    @app.callback(Output('{}-lbl'.format(key), 'children'),
-                  [Input('ptrn-dropdown', 'value')])
-    def update_ptrn_params(dropdown_val, key=key):
-        return ptrnctr_dic[dropdown_val][key]
-
-
-@app.callback(Output('ptrn-graph', 'figure'),
+@app.callback(Output('ptrn-scope', 'children'),
               inputs=[Input('ptrn-dropdown', 'value'),
                       Input('ptrn-submit-btn', 'n_clicks')],
-              state=[key for key in sorted(
+              state=[State(key, 'value') for key in sorted(
                           ptrnctr_dic[ptrnctr_dic.keys()[0]].iterkeys())
                      if key != 'data'])
-def update_ptrn_graph(dropdown_val, submit, ):
+def update_ptrn_graph(dropdown_val, submit, *args):
+    global ptrnctr_dic
+    if dropdown_val == 'own-ptrn':
+        ptrnctr_dic['own-ptrn'] = {
+            key: min(abs(float(args[idx])), 100)*.01
+            if key.split('_')[1] == 'p' else abs(float(args[idx]))*.01
+            for idx, key in enumerate(
+                sorted(ptrnctr_dic['own-ptrn'].iterkeys()))}
+    traces = []
+    ptrn = generate_pattern(**ptrnctr_dic[dropdown_val])
+    for key in pwm_values:
+        y = [p[int(key)] for p in ptrn]
+        t_m, t_a, t_d = (ptrnctr_dic[dropdown_val]['ptrn_t_move'],
+                         ptrnctr_dic[dropdown_val]['ptrn_t_fix'],
+                         ptrnctr_dic[dropdown_val]['ptrn_t_defix'])
+        x = [0, t_m, t_m+t_a, t_m+t_a+t_d, 2*t_m+t_a+t_d, 2*t_m+2*t_a+t_d]
+        data = go.Scatter(
+            x=x,
+            y=y,
+            name=key,
+            mode='lines+markers')
+        traces.append(data)
+
+    ptrn_lbls_t = [
+        ['{}{} : '.format(key.split('_')[1], key.split('_')[2]),
+         html.Label(children=ptrnctr_dic[dropdown_val][key])]
+        for key in sorted(ptrnctr_dic[dropdown_val].iterkeys())
+        if key != 'data']
+    ptrn_lbls = [html.Div([
+            html.Div(item[0], className='six columns'),
+            html.Div(item[1], className='six columns')
+            ], className='row') for item in ptrn_lbls_t]
+
+    figure = {
+            'data': traces,
+            'layout': go.Layout(
+                xaxis={'range': [0, 2*t_m+2*t_a+t_d]},
+                yaxis={'range': [0, 1]},
+                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                height=300
+                )
+        }
+    return [html.Div(ptrn_lbls, className='three columns'),
+            html.Div([
+                html.Div([
+                    dcc.Graph(id='ptrn-graph',
+                              figure=figure, config={'staticPlot': True})
+                    ], className='nine columns')
+                ])]
 
 
 # -----------------------------------------------------------------------------
