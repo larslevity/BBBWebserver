@@ -5,7 +5,7 @@ Created on Fri Mar 23 20:08:18 2018
 @author: ls
 """
 import dash
-from dash.dependencies import Input, Output, Event
+from dash.dependencies import Input, Output, Event, State
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
@@ -134,6 +134,13 @@ PATT2_6 = [[0.0, 0.95, 0.91, 0.0, 0.25, 0.71, False, True, True, False, 5.0],
            [0.7, 0.0, 0.0, 0.92, 0.76, 0.25, True, True, True, True, 2.0],
            [0.7, 0.0, 0.0, 0.92, 0.76, 0.25, False, True, True, False, 1.0]]
 
+PATTusr = [[0.00, 0.00, 0.00, 0.0, 0.25, 0.00, False, True, True, False, 5.0],
+           [0.00, 0.00, 0.00, 0.0, 0.25, 0.00, True, True, True, True, 2.0],
+           [0.00, 0.00, 0.00, 0.0, 0.25, 0.00, True, False, False, True, 1.0],
+           [0.00, 0.0, 0.0, 0.00, 0.00, 0.25, True, False, False, True, 5.0],
+           [0.00, 0.0, 0.0, 0.00, 0.00, 0.25, True, True, True, True, 2.0],
+           [0.00, 0.0, 0.0, 0.00, 0.00, 0.25, False, True, True, False, 1.0]]
+
 
 def generate_pattern(t_move, t_fix, t_defix, p0, p1, p2, p3, p4, p41, p5, p51):
     pattern = [[0.0, p1, p2, 0.0, p41, p5, False, True, True, False, t_move],
@@ -145,102 +152,130 @@ def generate_pattern(t_move, t_fix, t_defix, p0, p1, p2, p3, p4, p41, p5, p51):
     return pattern
 
 
-pttrnctr_dic = {'v3.0': {'data': PATT3_0,
-                         'ptrn-t-move': PATT3_0[0][-1],
-                         'ptrn-t-fix': PATT3_0[1][-1],
-                         'ptrn-t-defix': PATT3_0[2][-1],
-                         'ptrn-p-0': PATT3_0[3][0],
-                         'ptrn-p-1': PATT3_0[0][1],
-                         'ptrn-p-2': PATT3_0[0][2],
-                         'ptrn-p-3': PATT3_0[3][3],
-                         'ptrn-p-4': PATT3_0[3][4],
-                         'ptrn-p-41': PATT3_0[0][4],
-                         'ptrn-p-5': PATT3_0[0][5],
-                         'ptrn-p-51': PATT3_0[3][5]},
-                'v2.6': {'data': PATT2_6,
-                         't_move': PATT2_6[0][-1],
-                         't_fix': PATT2_6[1][-1],
-                         't_defix': PATT2_6[2][-1],
-                         'p_0': PATT2_6[3][0],
-                         'p_1': PATT2_6[0][1],
-                         'p_2': PATT2_6[0][2],
-                         'p_3': PATT2_6[3][3],
-                         'p_4': PATT2_6[3][4],
-                         'p_41': PATT2_6[0][4],
-                         'p_5': PATT2_6[0][5],
-                         'p_51': PATT2_6[3][5]}
-                }
+ptrnctr_dic = {key:
+    {'data': data,
+     'ptrn-t-move': data[0][-1],
+     'ptrn-t-fix': data[1][-1],
+     'ptrn-t-defix': data[2][-1],
+     'ptrn-p-0': data[3][0],
+     'ptrn-p-1': data[0][1],
+     'ptrn-p-2': data[0][2],
+     'ptrn-p-3': data[3][3],
+     'ptrn-p-4': data[3][4],
+     'ptrn-p-41': data[0][4],
+     'ptrn-p-5': data[0][5],
+     'ptrn-p-51': data[3][5]}
+    for key, data in zip(['v3.0', 'v2.6', 'own-ptrn'],
+                         [PATT3_0, PATT2_6, PATTusr])
+}
+
+
+ptrn_lbls_t = [
+    ['{}{} : '.format(key.split('-')[1], key.split('-')[2]),
+     html.Label(id='{}-lbl'.format(key), children='0')]
+    for key in sorted(ptrnctr_dic[ptrnctr_dic.keys()[0]].iterkeys())
+    if key != 'data']
+ptrn_lbls = [html.Div([
+        html.Div(item[0], className='six columns'),
+        html.Div(item[1], className='six columns')
+    ], className='row') for item in ptrn_lbls_t]
+
 
 pttrnctr = html.Div([
+    html.Div(dcc.Dropdown(
+        id='ptrn-dropdown',
+        options=[{'label': key, 'value': key} for key in ptrnctr_dic],
+        value=ptrnctr_dic.keys()[0]
+        ), className='row'),
+    html.Div([html.Button(id='ptrn-start', children='Start'),
+              html.Button(id='ptrn-stop', children='Stop')
+              ], className='row'),
     html.Div([
+        html.Div(ptrn_lbls, className='two columns'),
         html.Div([
-            dcc.Graph(id='ptrn-graph')
+            html.Div([
+                dcc.Graph(id='ptrn-graph')
+                ], className='row')
+            ], className='six columns'),
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.Div(['p0: \t\t', dcc.Input(id='ptrn-p-0',
+                                                        type='number', min=0,
+                                                        max=100,
+                                                        style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['p1: \t\t', dcc.Input(id='ptrn-p-1',
+                                                        type='number', min=0,
+                                                        max=100,
+                                                        style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['p2: \t\t', dcc.Input(id='ptrn-p-2',
+                                                        type='number', min=0,
+                                                        max=100,
+                                                        style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['p3: \t\t', dcc.Input(id='ptrn-p-3',
+                                                        type='number', min=0,
+                                                        max=100,
+                                                        style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['p4: \t\t', dcc.Input(id='ptrn-p-4',
+                                                        type='number', min=0,
+                                                        max=100,
+                                                        style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['p5: \t\t', dcc.Input(id='ptrn-p-5',
+                                                        type='number', min=0,
+                                                        max=100,
+                                                        style={'width': 80})])
+                        ], className='row')
+                ], className='six columns'),
+                html.Div([
+                    html.Div([
+                        html.Div(['p41: \t\t', dcc.Input(id='ptrn-p-41',
+                                                         type='number', min=0,
+                                                         max=100,
+                                                         style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['p51: \t\t', dcc.Input(id='ptrn-p-51',
+                                                         type='number', min=0,
+                                                         max=100,
+                                                         style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['t_m: \t\t', dcc.Input(id='ptrn-t-move',
+                                                         type='number', min=0,
+                                                         max=20,
+                                                         style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['t_a : ', dcc.Input(id='ptrn-t-fix',
+                                                      type='number',
+                                                      min=0, max=20,
+                                                      style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Div(['t_d : ', dcc.Input(id='ptrn-t-defix',
+                                                      type='number', min=0,
+                                                      max=20,
+                                                      style={'width': 80})])
+                        ], className='row'),
+                    html.Div([
+                        html.Button(id='ptrn-submit-btn', children='Submit')
+                        ], className='row')
+                ], className='six columns'),
             ], className='row')
-        ], className='eight columns'),
-    html.Div([
-        html.Div([
-            html.Div([
-                html.Div([
-                    html.Div(['p0: \t\t', dcc.Input(id='ptrn-p-0',
-                                                    type='text',
-                                                    style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['p1: \t\t', dcc.Input(id='ptrn-p-1',
-                                                    type='text',
-                                                    style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['p2: \t\t', dcc.Input(id='ptrn-p-2',
-                                                    type='text',
-                                                    style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['p3: \t\t', dcc.Input(id='ptrn-p-3',
-                                                    type='text',
-                                                    style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['p4: \t\t', dcc.Input(id='ptrn-p-4',
-                                                    type='text',
-                                                    style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['p5: \t\t', dcc.Input(id='ptrn-p-5',
-                                                    type='text',
-                                                    style={'width': 60})])
-                    ], className='row')
-            ], className='six columns'),
-            html.Div([
-                html.Div([
-                    html.Div(['p41: \t\t', dcc.Input(id='ptrn-p-41',
-                                                     type='text',
-                                                     style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['p51: \t\t', dcc.Input(id='ptrn-p-51',
-                                                     type='text',
-                                                     style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['t_m: \t\t', dcc.Input(id='ptrn-t-move',
-                                                     type='text',
-                                                     style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['t_a: \t\t', dcc.Input(id='ptrn-t-fix',
-                                                     type='text',
-                                                     style={'width': 60})])
-                    ], className='row'),
-                html.Div([
-                    html.Div(['t_d: \t\t', dcc.Input(id='ptrn-t-defix',
-                                                     type='text',
-                                                     style={'width': 60})])
-                    ], className='row')
-            ], className='six columns'),
-        ], className='row')
-    ], className='four columns')
-], className='row')
+        ], className='four columns')
+    ], className='row')
+])
 
 
 # -----------------------------------------------------------------------------
@@ -266,7 +301,7 @@ app.layout = html.Div(flat_list([
 
 
 # -----------------------------------------------------------------------------
-# Callbacks
+# Callbacks - PWM CTR
 # -----------------------------------------------------------------------------
 
 
@@ -313,9 +348,33 @@ for i in range(n_btns):
         return state
 
 
+# -----------------------------------------------------------------------------
+# Callbacks - Ptrn
+# -----------------------------------------------------------------------------
 
 
+for key in ptrnctr_dic[ptrnctr_dic.keys()[0]]:
+    if key == 'data':
+        continue
 
+    @app.callback(Output('{}-lbl'.format(key), 'children'),
+                  [Input('ptrn-dropdown', 'value')])
+    def update_ptrn_params(dropdown_val, key=key):
+        return ptrnctr_dic[dropdown_val][key]
+
+
+@app.callback(Output('ptrn-graph', 'figure'),
+              inputs=[Input('ptrn-dropdown', 'value'),
+                      Input('ptrn-submit-btn', 'n_clicks')],
+              state=[key for key in sorted(
+                          ptrnctr_dic[ptrnctr_dic.keys()[0]].iterkeys())
+                     if key != 'data'])
+def update_ptrn_graph(dropdown_val, submit, ):
+
+
+# -----------------------------------------------------------------------------
+# Callbacks - Main
+# -----------------------------------------------------------------------------
 
 
 @app.callback(Output('live-graph', 'figure'),
