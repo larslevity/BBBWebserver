@@ -45,13 +45,32 @@ minus_clicks = {
 plus_clicks = {
     str(i): 0 for i in range(n_sliders)}
 
+
+d_ref_values = {
+    str(i): 0 for i in range(n_btns)}
+
+minus_clicks_ref = {
+    str(i): 0 for i in range(n_sliders)}
+
+plus_clicks_ref = {
+    str(i): 0 for i in range(n_sliders)}
+
+
 timestamp = {
     str(i): deque(range(max_len), maxlen=max_len) for i in range(n_sliders)}
 timestamp['start'] = time.time()
 
+ref_timestamp = {
+    str(i): deque(range(max_len), maxlen=max_len) for i in range(n_sliders)}
+ref_timestamp['start'] = time.time()
+
+mes_timestamp = {
+    str(i): deque(range(max_len), maxlen=max_len) for i in range(n_sliders)}
+ref_timestamp['start'] = time.time()
 
 app = dash.Dash()
-
+app.scripts.config.serve_locally = True
+app.config['suppress_callback_exceptions'] = True
 
 app.css.append_css({
     "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
@@ -59,6 +78,65 @@ app.css.append_css({
 
 
 #    html.I(id='submit-button', n_clicks=0, className='fa fa-send'),
+
+
+# -----------------------------------------------------------------------------
+# PWM CONTROL - Html layout
+# -----------------------------------------------------------------------------
+
+lbls = [[html.Label('0', id='ref-label-{}'.format(i))
+         ] for i in range(n_sliders)]
+
+btns = [[
+        html.Button(id='-ref-btn-{}'.format(i), children='-'),
+        html.Button(id='+ref-btn-{}'.format(i), children='+')
+        ] for i in range(n_sliders)]
+
+sldrs = [[
+        dcc.Slider(id='ref-slider-{}'.format(i),
+                   min=0,
+                   max=100,
+                   value=0,
+                   marks={str(j): str(j) for j in range(0, 101, 10)}
+                   )
+        ] for i in range(n_sliders)]
+
+
+sliders = flat_list(
+            [[html.Div([
+                html.Div(lbls[i], className="one column"),
+                html.Div(btns[i], className="four columns"),
+                html.Div(sldrs[i], className="seven columns"),
+                ], className="row")
+              ] for i in range(n_sliders)])
+
+
+dlbls = [[html.Button(children='F{}'.format(i), id='d-ref-btn-{}'.format(i))
+          ] for i in range(n_btns)]
+
+dsldrs = [[dcc.Slider(id='d-ref-slider-{}'.format(i),
+                      min=0,
+                      max=1,
+                      value=0,
+                      marks={j: str(bool(j)) for j in range(2)}
+                      )
+           ] for i in range(n_btns)]
+
+dsliders = flat_list(
+            [[html.Div([
+                html.Div(dlbls[i], className="six columns"),
+                html.Div(dsldrs[i], className="six columns")
+                ], className="row")
+              ] for i in range(n_btns)])
+
+
+refctr = html.Div([
+        html.H1('Pressure Control'),
+        html.Div([
+            html.Div(sliders, className='eight columns'),
+            html.Div(dsliders, className='three columns')
+        ], className='row')
+    ])
 
 
 # -----------------------------------------------------------------------------
@@ -112,9 +190,12 @@ dsliders = flat_list(
 
 
 pwmctr = html.Div([
+        html.H1('PWM Control'),
+        html.Div([
             html.Div(sliders, className='eight columns'),
             html.Div(dsliders, className='three columns')
         ], className='row')
+    ])
 
 # -----------------------------------------------------------------------------
 # Pattern CONTROL - Html tab Layout
@@ -201,6 +282,7 @@ ptrn_inputs = [html.Div([
 
 
 pttrnctr = html.Div([
+    html.H1('Walking'),
     html.Div(dcc.Dropdown(
         id='ptrn-dropdown',
         options=[{'label': key, 'value': key} for key in ptrnctr_dic],
@@ -244,10 +326,45 @@ app.layout = html.Div(flat_list([
                  className="six columns")
         ], className='row'),
      dcc.Interval(id='graph-update', interval=1000)],
-    [pwmctr],
-    [pttrnctr]
-]))
+    [dcc.Tabs(
+        tabs=[
+            {'label': i[1], 'value': i[0]} for i in
+            [('PAUSE', 'Pause'),
+             ('REFERENCE_TRACKING', 'Walking'),
+             ('USER_CONTROL', 'PWM Ctr'),
+             ('USER_REFERENCE', 'Prsr Ctr'),
+             ('EXIT', 'Quit')]
+        ],
+        value='PAUSE',
+        id='tabs'),
+     html.Div(id='tab-output')]
+]), style={
+    'width': '90%',
+    'fontFamily': 'Sans-Serif',
+    'margin-left': 'auto',
+    'margin-right': 'auto'
+})
 
+
+# -----------------------------------------------------------------------------
+# Callbacks - Tabs Content
+# -----------------------------------------------------------------------------
+
+
+@app.callback(Output('tab-output', 'children'), [Input('tabs', 'value')])
+def display_content(value):
+    if value == 'REFERENCE_TRACKING':
+        return pttrnctr
+    elif value == 'USER_CONTROL':
+        return pwmctr
+    elif value == 'USER_REFERENCE':
+        return refctr
+    elif value == 'PAUSE':
+        return html.H1('PAUSE')
+    elif value == 'EXIT':
+        return 'Not Implemented'
+    else:
+        return 'Not Implemented'
 
 # -----------------------------------------------------------------------------
 # Callbacks - PWM CTR
@@ -298,17 +415,54 @@ for i in range(n_btns):
 
 
 # -----------------------------------------------------------------------------
-# Callbacks - Ptrn
+# Callbacks - REF CTR
 # -----------------------------------------------------------------------------
 
-#
-#for key in ptrnctr_dic[ptrnctr_dic.keys()[0]]:
-#    if key != 'data':
-#        @app.callback(Output('{}-lbl'.format(key), 'children'),
-#                      events=[Event('ptrn-graph', 'click')],
-#                      state=[State('ptrn-dropdown', 'value')])
-#        def update_ptrn_params(dropdown_val, key=key):
-#            return ptrnctr_dic[dropdown_val][key]
+for i in range(n_sliders):
+    @app.callback(Output('ref-label-{}'.format(i), 'children'),
+                  [Input('ref-slider-{}'.format(i), 'value')])
+    def ref_slider_callback(val, idx=i):
+        global ref_values
+        if ref_values[str(idx)][-1] != val:
+            global ref_timestamp
+            ref_values[str(idx)].append(val)
+            ref_timestamp[str(idx)].append(time.time()-timestamp['start'])
+        return str(val)
+
+    @app.callback(Output('ref-slider-{}'.format(i), 'value'),
+                  [Input('-ref-btn-{}'.format(i), 'n_clicks'),
+                   Input('+ref-btn-{}'.format(i), 'n_clicks')])
+    def ref_slider_update(minus, plus, idx=i):
+        global ref_values
+        global minus_clicks_ref
+        global plus_clicks_ref
+        val = ref_values[str(idx)][-1]
+        if minus > minus_clicks_ref[str(idx)]:
+            minus_clicks_ref[str(idx)] += 1
+            if val - 1 >= 0:
+                val -= 1
+        if plus > plus_clicks_ref[str(idx)]:
+            plus_clicks_ref[str(idx)] += 1
+            if val + 1 <= 100:
+                val += 1
+        return val
+
+
+for i in range(n_btns):
+    @app.callback(Output('d-ref-slider-{}'.format(i), 'value'),
+                  [Input('d-ref-btn-{}'.format(i), 'n_clicks')])
+    def d_ref_btn_callback(event, idx=i):
+        global d_ref_values
+        if event:
+            state = event % 2
+        else:
+            state = 0
+        d_ref_values[str(idx)] = state
+        return state
+
+# -----------------------------------------------------------------------------
+# Callbacks - Ptrn
+# -----------------------------------------------------------------------------
 
 
 @app.callback(Output('ptrn-scope', 'children'),
@@ -376,9 +530,6 @@ def update_ptrn_graph(dropdown_val, submit, *args):
 @app.callback(Output('live-graph', 'figure'),
               events=[Event('graph-update', 'interval')])
 def update_graph():
-    global pwm_values
-    global timestamp
-
     traces = []
     minis = []
     maxis = []
@@ -388,8 +539,42 @@ def update_graph():
         data = go.Scatter(
             x=list(timestamp[key]),
             y=list(pwm_values[key]),
-            name=key,
-            mode='markes+lines')
+            name='PWM {}'.format(key),
+            mode='lines+markers')
+        traces.append(data)
+    return {
+        'data': traces,
+        'layout': go.Layout(
+            xaxis={'range': [min(minis), max(maxis)]},
+            yaxis={'range': [0, 100]},
+            margin={'l': 40, 'b': 40, 't': 10, 'r': 10}
+        )
+    }
+
+
+@app.callback(Output('pressure-ref-graph', 'figure'),
+              events=[Event('graph-update', 'interval')])
+def update_ref_graph():
+    traces = []
+    minis = []
+    maxis = []
+    for key in ref_values:
+        minis.append(min(list(ref_timestamp[key])))
+        maxis.append(max(list(ref_timestamp[key])))
+        data = go.Scatter(
+            x=list(ref_timestamp[key]),
+            y=list(ref_values[key]),
+            name='Ref {}'.format(key),
+            mode='lines+markers')
+        traces.append(data)
+    for key in mes_values:
+        minis.append(min(list(mes_timestamp[key])))
+        maxis.append(max(list(mes_timestamp[key])))
+        data = go.Scatter(
+            x=list(mes_timestamp[key]),
+            y=list(mes_values[key]),
+            name='Mes {}'.format(key),
+            mode='lines+markers')
         traces.append(data)
     return {
         'data': traces,
