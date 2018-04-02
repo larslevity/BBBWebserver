@@ -22,7 +22,7 @@ def print(*args, **kwargs):
     __builtin__.print(colored('Comm_Thread: ', 'red'), *args, **kwargs)
 
 
-class CommunicationThread(threading.Thread):
+class ServerThread(threading.Thread):
     def __init__(self, cargo):
         """ """
         threading.Thread.__init__(self)
@@ -162,37 +162,6 @@ class CommunicationThread(threading.Thread):
     def send_back(self, data_out):
         data_out_raw = pickler.pickle_data(data_out)
         self.connection.sendall(data_out_raw)
-
-
-def init_connection():
-    HOST = None               # Symbolic name meaning all available interfaces
-    PORT = 10000              # Arbitrary non-privileged port
-    s = None
-    for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
-                                  socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
-        af, socktype, proto, canonname, sa = res
-        try:
-            s = socket.socket(af, socktype, proto)
-            print('socket created with address family: ', af)
-        except socket.error as msg:
-            print('error while creating socket: ', msg)
-            s = None
-            continue
-        try:
-            s.bind(sa)
-            s.listen(100)
-            print('socket bounded with server address: ', sa)
-        except socket.error as msg:
-            s.close()
-            s = None
-            print('Error while sock.bind: ', msg)
-            continue
-        break
-    if s is None:
-        print('could not open socket')
-        sys.exit(1)
-    SOCK = s
-    return SOCK
 
 
 def graceful_exit(connection, SOCK):
