@@ -2,6 +2,10 @@
 """
 Created on Fri Mar 23 20:08:18 2018
 
+For the Tbas install the prerelease from github:
+    pip install dash-core-components==0.13.0-rc4
+
+
 @author: ls
 """
 import dash
@@ -22,37 +26,44 @@ def flat_list(l):
 # -----------------------------------------------------------------------------
 # Initialize
 # -----------------------------------------------------------------------------
-n_sliders = 6
-n_btns = 4
-max_len = 10
-
 
 class UI_Vars(object):
     def __init__(self):
+        self.n_sliders = 6
+        self.n_btns = 4
+        self.max_len = 10
         self.ptrnctr_dic = {}
         self.pwm_values = {
-            str(i): deque([0]*max_len, maxlen=max_len)
-            for i in range(n_sliders)}
+            str(i): deque([0]*self.max_len, maxlen=self.max_len)
+            for i in range(self.n_sliders)}
         self.ref_values = {
-            str(i): deque([0]*max_len, maxlen=max_len)
-            for i in range(n_sliders)}
+            str(i): deque([0]*self.max_len, maxlen=self.max_len)
+            for i in range(self.n_sliders)}
         self.mes_values = {
-            str(i): deque([0]*max_len, maxlen=max_len)
-            for i in range(n_sliders)}
+            str(i): deque([0]*self.max_len, maxlen=self.max_len)
+            for i in range(self.n_sliders)}
         self.timestamp = {
-            str(i): deque(range(max_len), maxlen=max_len)
-            for i in range(n_sliders)}
+            str(i): deque(range(self.max_len), maxlen=self.max_len)
+            for i in range(self.n_sliders)}
         self.timestamp['start'] = time.time()
         self.ref_timestamp = {
-            str(i): deque(range(max_len), maxlen=max_len)
-            for i in range(n_sliders)}
+            str(i): deque(range(self.max_len), maxlen=self.max_len)
+            for i in range(self.n_sliders)}
         self.ref_timestamp['start'] = time.time()
         self.mes_timestamp = {
-            str(i): deque(range(max_len), maxlen=max_len)
-            for i in range(n_sliders)}
+            str(i): deque(range(self.max_len), maxlen=self.max_len)
+            for i in range(self.n_sliders)}
         self.ref_timestamp['start'] = time.time()
         self.d_ref_values = {
-            str(i): 0 for i in range(n_btns)}
+            str(i): 0 for i in range(self.n_btns)}
+        self.minus_clicks = {
+                str(i): 0 for i in range(self.n_sliders)}
+        self.plus_clicks = {
+                str(i): 0 for i in range(self.n_sliders)}
+        self.minus_clicks_ref = {
+                str(i): 0 for i in range(self.n_sliders)}
+        self.plus_clicks_ref = {
+                str(i): 0 for i in range(self.n_sliders)}
 
     def append_ptrn(self, key, data):
         self.ptrnctr_dic[key] = self.generate_ptrn_dict(data)
@@ -136,19 +147,6 @@ class UI_Vars(object):
         return data
 
 
-minus_clicks = {
-    str(i): 0 for i in range(n_sliders)}
-
-plus_clicks = {
-    str(i): 0 for i in range(n_sliders)}
-
-minus_clicks_ref = {
-    str(i): 0 for i in range(n_sliders)}
-
-plus_clicks_ref = {
-    str(i): 0 for i in range(n_sliders)}
-
-
 def make_app(uiVars):
 
     app = dash.Dash()
@@ -188,12 +186,12 @@ def make_app(uiVars):
     # -------------------------------------------------------------------------
 
     lbls = [[html.Label('0', id='ref-label-{}'.format(i))
-             ] for i in range(n_sliders)]
+             ] for i in range(uiVars.n_sliders)]
 
     btns = [[
             html.Button(id='-ref-btn-{}'.format(i), children='-'),
             html.Button(id='+ref-btn-{}'.format(i), children='+')
-            ] for i in range(n_sliders)]
+            ] for i in range(uiVars.n_sliders)]
 
     sldrs = [[
             dcc.Slider(id='ref-slider-{}'.format(i),
@@ -202,7 +200,7 @@ def make_app(uiVars):
                        value=0,
                        marks={str(j): str(j) for j in range(0, 101, 10)}
                        )
-            ] for i in range(n_sliders)]
+            ] for i in range(uiVars.n_sliders)]
 
     sliders = flat_list(
                 [[html.Div([
@@ -210,11 +208,11 @@ def make_app(uiVars):
                     html.Div(btns[i], className="four columns"),
                     html.Div(sldrs[i], className="seven columns"),
                     ], className="row")
-                  ] for i in range(n_sliders)])
+                  ] for i in range(uiVars.n_sliders)])
 
     dlbls = [[html.Button(children='F{}'.format(i),
                           id='d-ref-btn-{}'.format(i))
-              ] for i in range(n_btns)]
+              ] for i in range(uiVars.n_btns)]
 
     dsldrs = [[dcc.Slider(id='d-ref-slider-{}'.format(i),
                           min=0,
@@ -222,14 +220,14 @@ def make_app(uiVars):
                           value=0,
                           marks={j: str(bool(j)) for j in range(2)}
                           )
-               ] for i in range(n_btns)]
+               ] for i in range(uiVars.n_btns)]
 
     dsliders = flat_list(
                 [[html.Div([
                     html.Div(dlbls[i], className="six columns"),
                     html.Div(dsldrs[i], className="six columns")
                     ], className="row")
-                  ] for i in range(n_btns)])
+                  ] for i in range(uiVars.n_btns)])
 
     refctr = html.Div([
             html.H1('Pressure Control'),
@@ -243,12 +241,12 @@ def make_app(uiVars):
     # PWM CONTROL - Html layout
     # -------------------------------------------------------------------------
     lbls = [[html.Label('0', id='pwm-label-{}'.format(i))
-             ] for i in range(n_sliders)]
+             ] for i in range(uiVars.n_sliders)]
 
     btns = [[
             html.Button(id='--btn-{}'.format(i), children='-'),
             html.Button(id='+-btn-{}'.format(i), children='+')
-            ] for i in range(n_sliders)]
+            ] for i in range(uiVars.n_sliders)]
 
     sldrs = [[
             dcc.Slider(id='pwm-slider-{}'.format(i),
@@ -257,7 +255,7 @@ def make_app(uiVars):
                        value=0,
                        marks={str(j): str(j) for j in range(0, 101, 10)}
                        )
-            ] for i in range(n_sliders)]
+            ] for i in range(uiVars.n_sliders)]
 
     sliders = flat_list(
                 [[html.Div([
@@ -265,10 +263,10 @@ def make_app(uiVars):
                     html.Div(btns[i], className="four columns"),
                     html.Div(sldrs[i], className="seven columns"),
                     ], className="row")
-                  ] for i in range(n_sliders)])
+                  ] for i in range(uiVars.n_sliders)])
 
     dlbls = [[html.Button(children='F{}'.format(i), id='d-btn-{}'.format(i))
-              ] for i in range(n_btns)]
+              ] for i in range(uiVars.n_btns)]
 
     dsldrs = [[dcc.Slider(id='d-slider-{}'.format(i),
                           min=0,
@@ -276,14 +274,14 @@ def make_app(uiVars):
                           value=0,
                           marks={j: str(bool(j)) for j in range(2)}
                           )
-               ] for i in range(n_btns)]
+               ] for i in range(uiVars.n_btns)]
 
     dsliders = flat_list(
                 [[html.Div([
                     html.Div(dlbls[i], className="six columns"),
                     html.Div(dsldrs[i], className="six columns")
                     ], className="row")
-                  ] for i in range(n_btns)])
+                  ] for i in range(uiVars.n_btns)])
 
     pwmctr = html.Div([
             html.H1('PWM Control'),
@@ -396,7 +394,7 @@ def make_app(uiVars):
     # Callbacks - PWM CTR
     # -------------------------------------------------------------------------
 
-    for i in range(n_sliders):
+    for i in range(uiVars.n_sliders):
         @app.callback(Output('pwm-label-{}'.format(i), 'children'),
                       [Input('pwm-slider-{}'.format(i), 'value')])
         def slider_callback(val, idx=i):
@@ -409,17 +407,17 @@ def make_app(uiVars):
                        Input('+-btn-{}'.format(i), 'n_clicks')])
         def slider_update(minus, plus, idx=i):
             val = uiVars.get_pwm(idx)[0][-1]
-            if minus > minus_clicks[str(idx)]:
-                minus_clicks[str(idx)] += 1
+            if minus > uiVars.minus_clicks[str(idx)]:
+                uiVars.minus_clicks[str(idx)] += 1
                 if val - 1 >= 0:
                     val -= 1
-            if plus > plus_clicks[str(idx)]:
-                plus_clicks[str(idx)] += 1
+            if plus > uiVars.plus_clicks[str(idx)]:
+                uiVars.plus_clicks[str(idx)] += 1
                 if val + 1 <= 100:
                     val += 1
             return val
 
-    for i in range(n_btns):
+    for i in range(uiVars.n_btns):
         @app.callback(Output('d-slider-{}'.format(i), 'value'),
                       [Input('d-btn-{}'.format(i), 'n_clicks')])
         def d_btn_callback(event, idx=i):
@@ -434,7 +432,7 @@ def make_app(uiVars):
     # Callbacks - REF CTR
     # -------------------------------------------------------------------------
 
-    for i in range(n_sliders):
+    for i in range(uiVars.n_sliders):
         @app.callback(Output('ref-label-{}'.format(i), 'children'),
                       [Input('ref-slider-{}'.format(i), 'value')])
         def ref_slider_callback(val, idx=i):
@@ -447,17 +445,17 @@ def make_app(uiVars):
                        Input('+ref-btn-{}'.format(i), 'n_clicks')])
         def ref_slider_update(minus, plus, idx=i):
             val = uiVars.get_ref(idx)[0][-1]
-            if minus > minus_clicks_ref[str(idx)]:
-                minus_clicks_ref[str(idx)] += 1
+            if minus > uiVars.minus_clicks_ref[str(idx)]:
+                uiVars.minus_clicks_ref[str(idx)] += 1
                 if val - 1 >= 0:
                     val -= 1
-            if plus > plus_clicks_ref[str(idx)]:
-                plus_clicks_ref[str(idx)] += 1
+            if plus > uiVars.plus_clicks_ref[str(idx)]:
+                uiVars.plus_clicks_ref[str(idx)] += 1
                 if val + 1 <= 100:
                     val += 1
             return val
 
-    for i in range(n_btns):
+    for i in range(uiVars.n_btns):
         @app.callback(Output('d-ref-slider-{}'.format(i), 'value'),
                       [Input('d-ref-btn-{}'.format(i), 'n_clicks')])
         def d_ref_btn_callback(event, idx=i):

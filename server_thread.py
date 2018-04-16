@@ -27,6 +27,11 @@ class ServerThread(threading.Thread):
         """ """
         threading.Thread.__init__(self)
         self.cargo = cargo
+        uiVars = UI_Vars()
+        uiVars.append_ptrn('v3.0', PATT3_0)
+        uiVars.append_ptrn('own-ptrn', PATTusr)
+        uiVars.append_ptrn('v2.6', PATT2_6)
+
 
         print('Starting server ...')
 
