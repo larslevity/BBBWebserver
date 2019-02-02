@@ -5,16 +5,16 @@ https://stackoverflow.com/questions/36695902/beaglebone-black-to-the-gpio-contro
 import Adafruit_BBIO.GPIO as GPIO
 import time
 
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 from flask import Flask, render_template, request
 app = Flask(__name__)
 
-GPIO.setmode(GPIO.BCM)
+#GPIO.setmode(GPIO.BCM)
 
 # Create a dictionary called pins to store the pin number, name, and pin state:
 pins = {
-   24 : {'name' : 'coffee maker', 'state' : GPIO.LOW},
-   25 : {'name' : 'lamp', 'state' : GPIO.LOW}
+   "P8_10" : {'name' : 'pin10', 'state' : GPIO.LOW},
+   "P8_11" : {'name' : 'pin11', 'state' : GPIO.LOW}
    }
 
 # Set each pin as an output and make it low:
@@ -38,7 +38,7 @@ def main():
 @app.route("/<changePin>/<action>")
 def action(changePin, action):
    # Convert the pin from the URL into an integer:
-   changePin = int(changePin)
+   changePin = changePin
    # Get the device name for the pin being changed:
    deviceName = pins[changePin]['name']
    # If the action part of the URL is "on," execute the code indented below:
