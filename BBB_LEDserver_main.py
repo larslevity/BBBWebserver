@@ -3,12 +3,10 @@ To run on the BBB (-- without any virzuel enviroment)
 
 After running:
 
-    visit the website on:
+    visit the website in the local network on:
         192.168.178.56:8050
 
 """
-
-
 
 # -*- coding: utf-8 -*-
 import dash
@@ -116,6 +114,11 @@ class GPIOThread(threading.Thread):
                     GPIO.output(pin, GPIO.HIGH)
                     time.sleep(.2)
                     GPIO.output(pin, GPIO.LOW)
+            elif self.mode.value == 2:
+                for pin in pins:
+                    GPIO.output(pin, GPIO.HIGH)
+                    time.sleep(.05)
+                    GPIO.output(pin, GPIO.LOW)
 
     def kill(self):
         self.exit_flag = True
@@ -126,6 +129,6 @@ if __name__ == '__main__':
     gpio_thread.start()
 
     try:
-        app.run_server(debug=True, host='0.0.0.0')
+        app.run_server(debug=True, host='0.0.0.0', port=8050)
     finally:
         gpio_thread.kill()
