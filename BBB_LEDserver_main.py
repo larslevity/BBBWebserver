@@ -1,3 +1,14 @@
+"""
+To run on the BBB (-- without any virzuel enviroment)
+
+After running:
+
+    visit the website on:
+        192.168.178.56:8050
+
+"""
+
+
 
 # -*- coding: utf-8 -*-
 import dash
@@ -98,9 +109,9 @@ class GPIOThread(threading.Thread):
     def run(self):
         """ run HUI """
         while not self.exit_flag:
-            if self.mode.val == 0:
+            if self.mode.value == 0:
                 time.sleep(.5)
-            elif self.mode.val == 1:
+            elif self.mode.value == 1:
                 for pin in pins:
                     GPIO.output(pin, GPIO.HIGH)
                     time.sleep(.2)
@@ -112,6 +123,7 @@ class GPIOThread(threading.Thread):
 
 if __name__ == '__main__':
     gpio_thread = GPIOThread(modus)
+    gpio_thread.start()
 
     try:
         app.run_server(debug=True, host='0.0.0.0')
