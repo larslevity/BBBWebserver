@@ -47,24 +47,27 @@ colors = {
 app.layout = html.Div(style={'backgroundColor': colors['background']},
                       children=[
     html.H1(
-        children='Hello Dash',
+        children='Blinking Fischli',
         style={
             'textAlign': 'center',
             'color': colors['text']
         }
     ),
 
-    html.Div(children='Dash: A web application framework for Python.', style={
-        'textAlign': 'center',
-        'color': colors['text']
-    }),
+    html.Div(
+        children='Select the mood of Fischli',
+        style={
+            'textAlign': 'center',
+            'color': colors['text']
+        }
+    ),
 
     dcc.RadioItems(
         id='radio-items',
         options=[
-            {'label': 'Mode 1', 'value': 0},
-            {'label': 'Mode 2', 'value': 1},
-            {'label': 'Mode 3', 'value': 2}
+            {'label': 'OFF', 'value': 0},
+            {'label': 'Blinking', 'value': 1},
+            {'label': 'Fast Blinking', 'value': 2}
         ],
         value=0,
         style={
