@@ -24,8 +24,18 @@ except ImportError:
 
 
 pins = {
-   "P8_10": {'name': 'pin10', 'state': GPIO.LOW},
-   "P8_11": {'name': 'pin11', 'state': GPIO.LOW}
+    "P8_7": {'name': 'pin7', 'state': GPIO.LOW},
+    "P8_8": {'name': 'pin8', 'state': GPIO.LOW},
+    "P8_9": {'name': 'pin9', 'state': GPIO.LOW},
+    "P8_10": {'name': 'pin10', 'state': GPIO.LOW},
+    "P8_11": {'name': 'pin11', 'state': GPIO.LOW},
+    "P8_12": {'name': 'pin12', 'state': GPIO.LOW},
+    "P8_14": {'name': 'pin14', 'state': GPIO.LOW},
+    "P8_16": {'name': 'pin16', 'state': GPIO.LOW}
+#    "P8_15": {'name': 'pin15', 'state': GPIO.LOW},
+#    "P8_17": {'name': 'pin17', 'state': GPIO.LOW},
+#    "P8_18": {'name': 'pin18', 'state': GPIO.LOW},
+#    "P8_26": {'name': 'pin26', 'state': GPIO.LOW},
    }
 
 
@@ -115,13 +125,15 @@ class GPIOThread(threading.Thread):
             elif self.mode.value == 1:
                 for pin in pins:
                     GPIO.output(pin, GPIO.HIGH)
-                    time.sleep(.2)
+                    time.sleep(.1)
                     GPIO.output(pin, GPIO.LOW)
             elif self.mode.value == 2:
                 for pin in pins:
                     GPIO.output(pin, GPIO.HIGH)
-                    time.sleep(.05)
+                time.sleep(.1)
+                for pin in pins:
                     GPIO.output(pin, GPIO.LOW)
+                time.sleep(.2)
 
     def kill(self):
         self.exit_flag = True
