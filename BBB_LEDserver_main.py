@@ -34,23 +34,44 @@ import threading
 try:
     import Adafruit_BBIO.GPIO as GPIO
 except ImportError:
-    print 'can not import Adafruit'
+    print('can not import Adafruit')
 
+#[11 12]
+#[21 22]
+#[31 32]
+#[41 42]
+#[51 52]
+#[61 62]
 
-pins = {
-    "P8_7": {'name': 'pin7', 'state': GPIO.LOW},
-    "P8_8": {'name': 'pin8', 'state': GPIO.LOW},
-    "P8_9": {'name': 'pin9', 'state': GPIO.LOW},
-    "P8_10": {'name': 'pin10', 'state': GPIO.LOW},
-    "P8_11": {'name': 'pin11', 'state': GPIO.LOW},
-    "P8_12": {'name': 'pin12', 'state': GPIO.LOW},
-    "P8_14": {'name': 'pin14', 'state': GPIO.LOW},
-    "P8_16": {'name': 'pin16', 'state': GPIO.LOW},
-    "P8_15": {'name': 'pin15', 'state': GPIO.LOW},
-    "P8_17": {'name': 'pin17', 'state': GPIO.LOW},
-    "P8_18": {'name': 'pin18', 'state': GPIO.LOW},
-    "P8_26": {'name': 'pin26', 'state': GPIO.LOW}
-   }
+pins = [
+    "P8_10",  # bright orange 11
+    "P8_14",  # light yellow 12
+    "P8_12",  # kaputt
+    "P8_8",   # bright yellow 22
+    "P8_26",  # bright orange 31
+    "P8_7",   # light red   32
+    "P8_11",  # bright pink 41
+    "P8_9",   # bright red 42
+    "P8_17",  # light orange 51
+    "P8_18",  # light red 52
+    "P8_15",  # bright orange 61
+    "P8_16",  # light green 62
+   ]
+
+pins_loop = [
+    "P8_10",  # bright orange 11
+    "P8_12",  # kaputt 21    
+    "P8_26",  # bright orange 31    
+    "P8_11",  # bright pink 41    
+    "P8_17",  # light orange 51    
+    "P8_15",  # bright orange 61
+    "P8_16",  # light green 62
+    "P8_18",  # light red 52
+    "P8_9",   # bright red 42
+    "P8_7",   # light red   32
+    "P8_8",   # bright yellow 22
+    "P8_14",  # light yellow 12
+   ]
 
 
 class Modus(object):
@@ -90,9 +111,12 @@ app.layout = html.Div(style={'backgroundColor': colors['background']},
         id='radio-items',
         options=[
             {'label': 'OFF', 'value': 0},
-            {'label': 'Blinking', 'value': 1},
-            {'label': 'Fast Blinking', 'value': 2}
+            {'label': 'Knight', 'value': 1},
+            {'label': 'Blink', 'value': 2},
+            {'label': 'Loop', 'value': 3},
+            {'label': 'Blitz', 'value': 4},
         ],
+#        options = [{'label': 'pin '+str(i), 'value': i} for i in range(len(pins))],
         value=0,
         style={
             'textAlign': 'center',
@@ -131,13 +155,24 @@ class GPIOThread(threading.Thread):
             GPIO.setup(pin, GPIO.OUT)
             GPIO.output(pin, GPIO.LOW)
 
+#    def run(self):
+#        """ run HUI """
+#        while not self.exit_flag:
+#
+#            for i, pin in enumerate(pins):
+#                if self.mode.value == i:
+#                    GPIO.output(pin, GPIO.HIGH)
+#                    time.sleep(.5)
+#                    GPIO.output(pin, GPIO.LOW)
+#            time.sleep(.2)
+
     def run(self):
         """ run HUI """
         while not self.exit_flag:
             if self.mode.value == 0:
                 time.sleep(.5)
-            elif self.mode.value == 1:
-                for pin in pins:
+            elif self.mode.value in [1, 3]:
+                for pin in pins if self.mode.value==1 else pins_loop:
                     GPIO.output(pin, GPIO.HIGH)
                     time.sleep(.1)
                     GPIO.output(pin, GPIO.LOW)
@@ -148,6 +183,11 @@ class GPIOThread(threading.Thread):
                 for pin in pins:
                     GPIO.output(pin, GPIO.LOW)
                 time.sleep(.2)
+            elif self.mode.value == 4:
+                for pin in pins:
+                    GPIO.output(pin, GPIO.HIGH)
+                    time.sleep(.04)
+                    GPIO.output(pin, GPIO.LOW)
 
     def kill(self):
         self.exit_flag = True
