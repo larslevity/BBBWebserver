@@ -14,6 +14,12 @@ After running:
     visit the website in the local network on:
         192.168.178.56:8050
 
+
+To start after a reboot, add a cronjob by editing the crontab:
+	crontab -e
+and add the following line:
+	@reboot python ~/Git/BBBWebserver/BBB_LEDserver_main.py
+
 """
 
 # -*- coding: utf-8 -*-
